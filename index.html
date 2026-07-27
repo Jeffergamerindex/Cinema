@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Salão dos Reinos — assistam juntos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+  :root{
+    --bg: #0a0908; --panel: #171317; --panel-light: #201a1c;
+    --stone: #211d20; --wood: #2a1f16;
+    --fire: #d9642f; --fire-dim: #6b3418; --ember: #f0a247;
+    --ice: #6f97ab; --gold: #b98d4a;
+    --text: #e9e0cd; --muted: #9a8f82; --line: #3a322c; --lit: #7fae63;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse 700px 400px at 50% -8%, rgba(217,100,47,0.16) 0%, transparent 60%),
+      radial-gradient(ellipse 900px 600px at 90% 110%, rgba(111,151,171,0.09) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px),
+      var(--bg);
+    color: var(--text); font-family:'EB Garamond',serif; min-height:100vh; -webkit-font-smoothing:antialiased;
+    transition: background-color .8s ease;
+  }
+  body.cinema-mode{ background: #030303; }
+  .display{ font-family:'Cinzel',serif; letter-spacing:0.06em; }
+  .mono{ font-family:'Space Mono',monospace; }
+  #app{ max-width: 980px; margin:0 auto; padding: 28px 18px 60px; transition: padding .6s ease, max-width .6s ease; }
+  body.cinema-mode #app{ max-width: 1100px; padding: 14px 12px 30px; }
+
+  .banner-rule{ display:flex; align-items:center; gap:10px; margin: 6px 0 22px; color: var(--fire-dim); }
+  .banner-rule::before, .banner-rule::after{ content:""; flex:1; height:1px; background: linear-gradient(90deg, transparent, var(--line), transparent); }
+  .banner-rule span{ font-size:13px; color: var(--gold); }
+
+  /* Landing */
+  .landing{ display:flex; flex-direction:column; align-items:center; text-align:center; padding-top:5vh; }
+  .marquee-title{
+    font-size: clamp(32px,7vw,54px); font-weight:900; color: var(--ember);
+    text-shadow: 0 0 22px rgba(217,100,47,0.4), 0 0 3px rgba(0,0,0,0.6);
+    line-height:1.05; margin:0 0 10px; text-transform:uppercase;
+  }
+  .subtitle{ color: var(--muted); font-size:16px; max-width:460px; margin-bottom:30px; line-height:1.6; font-style:italic; }
+  .ticket{
+    background: linear-gradient(160deg, var(--panel) 0%, var(--stone) 100%);
+    border:1px solid var(--line); border-radius:4px; padding:32px 28px; width:100%; max-width:380px;
+    position:relative; box-shadow: 0 0 0 1px rgba(217,100,47,0.08), 0 18px 40px rgba(0,0,0,0.55);
+  }
+  .ticket::before{
+    content:"🛡"; position:absolute; top:-18px; left:50%; transform:translateX(-50%);
+    background: var(--bg); color: var(--fire); font-size:20px; padding:3px 11px; border:1px solid var(--line); border-radius:50%;
+  }
+  .field{ text-align:left; margin-bottom:18px; }
+  .field label{ display:block; font-family:'Cinzel',serif; font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:var(--fire); margin-bottom:7px; }
+  .field input{ width:100%; padding:11px 12px; border-radius:3px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-family:'EB Garamond',serif; font-size:16px; }
+  .field input:focus{ outline:1px solid var(--fire); outline-offset:1px; }
+  .row-inline{ display:flex; gap:8px; }
+  .row-inline input{ flex:1; }
+  .btn{ border:none; border-radius:3px; padding:12px 18px; font-weight:700; font-size:14px; cursor:pointer; font-family:'Cinzel',serif; letter-spacing:0.06em; text-transform:uppercase; transition: transform .08s ease, filter .15s ease, box-shadow .15s ease, opacity .15s ease; }
+  .btn:active{ transform:scale(0.97); }
+  .btn:disabled{ opacity:0.4; cursor:not-allowed; }
+  .btn-amber{ background: linear-gradient(180deg, var(--ember), var(--fire)); color:#1a0d04; box-shadow: 0 0 16px rgba(217,100,47,0.3); }
+  .btn-amber:hover{ filter:brightness(1.1); }
+  .btn-ghost{ background:transparent; color:var(--muted); border:1px solid var(--line); font-family:'EB Garamond',serif; text-transform:none; letter-spacing:0; font-weight:400; }
+  .btn-ghost:hover{ color:var(--text); border-color:var(--muted); }
+  .btn-ice{ background: linear-gradient(180deg, #8fb6c7, var(--ice)); color:#06181f; }
+  .btn-full{ width:100%; }
+  .hint{ color: var(--muted); font-size:12px; margin-top:20px; line-height:1.6; max-width:420px; }
+
+  /* Header / status */
+  .room-header{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:18px; flex-wrap:wrap; border-bottom:1px solid var(--line); padding-bottom:14px; }
+  .room-code-badge{ display:inline-flex; align-items:center; gap:8px; background:var(--panel-light); border:1px solid var(--fire-dim); padding:6px 13px; border-radius:3px; font-size:12px; color:var(--ember); font-family:'Space Mono',monospace; }
+  .leave-link{ font-size:11px; color:var(--muted); text-decoration:underline; cursor:pointer; margin-left:10px; }
+  .conn-status{ display:flex; align-items:center; gap:9px; }
+  .bulbs-mini{ display:flex; gap:6px; }
+  .bulb-mini{ width:9px; height:12px; border-radius:1px 1px 4px 4px; background:#3a322c; transition: background .3s, box-shadow .3s; }
+  .bulb-mini.lit{ background: var(--fire); box-shadow: 0 0 8px 3px rgba(217,100,47,0.55); }
+  .bulb-mini.warn{ background: var(--ice); box-shadow: 0 0 8px 3px rgba(111,151,171,0.5); }
+  .conn-label{ font-size:12px; color:var(--muted); font-style:italic; }
+  .error-box{ background: rgba(111,151,171,0.10); border:1px solid var(--ice); color:var(--ice); padding:10px 14px; border-radius:3px; font-size:13px; margin-bottom:16px; }
+  .toast{ position:absolute; top:10px; left:50%; transform:translateX(-50%); background: rgba(10,9,8,0.92); border:1px solid var(--fire-dim); color:var(--ember); padding:9px 18px; border-radius:3px; font-size:13px; z-index:20; box-shadow:0 6px 18px rgba(0,0,0,0.5); opacity:0; transition: opacity .3s ease; pointer-events:none; text-align:center; }
+  .toast.show{ opacity:1; }
+
+  /* Lobby (grande salão) */
+  .lobby-grid{ display:grid; grid-template-columns: 1fr; gap:18px; }
+  @media (min-width:760px){ .lobby-grid{ grid-template-columns: 1.15fr 0.85fr; } }
+  .hall-panel{ background: linear-gradient(160deg, var(--panel), var(--stone)); border:1px solid var(--line); border-radius:4px; padding:20px; }
+  .hall-title{ font-family:'Cinzel',serif; font-size:13px; text-transform:uppercase; letter-spacing:0.12em; color:var(--gold); margin:0 0 16px; display:flex; align-items:center; gap:8px; }
+  .participants-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:18px; }
+  .participant-row{ display:flex; align-items:center; justify-content:space-between; background:var(--panel-light); border:1px solid var(--line); border-radius:3px; padding:9px 12px; font-size:14px; }
+  .participant-row .p-name{ display:flex; align-items:center; gap:8px; }
+  .participant-row .p-crest{ font-size:15px; }
+  .participant-row .p-status{ display:flex; align-items:center; gap:10px; font-size:13px; color:var(--muted); }
+  .status-ready{ color: var(--lit); }
+  .status-waiting{ color: var(--muted); }
+  .mic-dot{ font-size:12px; }
+  .lobby-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
+  .video-prep-row{ display:flex; gap:8px; margin-bottom:10px; }
+  .video-prep-row input{ flex:1; padding:10px 12px; border-radius:3px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:14px; }
+  .video-set-label{ font-size:13px; color: var(--muted); margin-top:4px; }
+  .queue-list{ display:flex; flex-direction:column; gap:7px; margin-bottom:10px; }
+  .queue-item{ display:flex; align-items:center; justify-content:space-between; background:var(--panel-light); border:1px solid var(--line); border-radius:3px; padding:8px 11px; font-size:13px; gap:8px; }
+  .queue-item-actions{ display:flex; gap:10px; flex-shrink:0; }
+  .queue-item-actions button{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:12px; font-family:'EB Garamond',serif; }
+  .queue-item-actions button:hover{ color:var(--ember); }
+  .queue-add-row{ display:flex; gap:6px; }
+  .queue-add-row input{ padding:9px 10px; border-radius:3px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:13px; }
+  .queue-add-row input:first-child{ flex:0 0 34%; }
+  .queue-add-row input:nth-child(2){ flex:1; }
+
+  /* Chat */
+  .chat-panel{ background:linear-gradient(160deg, var(--panel), var(--wood)); border:1px solid var(--line); border-radius:4px; padding:18px; }
+  .chat-title{ font-family:'Cinzel',serif; font-size:12px; text-transform:uppercase; letter-spacing:0.12em; color:var(--fire); margin:0 0 14px; }
+  .chat-log{ max-height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:9px; margin-bottom:14px; }
+  .chat-msg{ font-size:15px; line-height:1.5; }
+  .chat-msg .who{ color:var(--ice); font-weight:600; margin-right:6px; font-family:'Cinzel',serif; font-size:13px; }
+  .chat-empty{ color:var(--muted); font-size:14px; font-style:italic; }
+  .chat-input-row{ display:flex; gap:8px; }
+  .chat-input-row input{ flex:1; padding:10px 12px; border-radius:3px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:15px; font-family:'EB Garamond',serif; }
+
+  /* Countdown overlay */
+  .countdown-screen{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; padding: 14vh 20px; text-align:center; }
+  .bulbs{ display:flex; gap:10px; }
+  .bulb{ width:16px; height:16px; border-radius:50%; background:#3a3255; transition: background .25s, box-shadow .25s; }
+  .bulb.lit{ background: var(--fire); box-shadow: 0 0 14px 4px rgba(217,100,47,0.7); }
+  .countdown-number{ font-size: 84px; color: var(--ember); text-shadow: 0 0 24px rgba(217,100,47,0.6); }
+  .countdown-cue{ font-size: 14px; color: var(--muted); letter-spacing:0.06em; text-transform:uppercase; font-family:'Cinzel',serif; }
+
+  /* Cinema mode */
+  .cinema-topbar{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+  .cinema-badge{ font-size:11px; color:var(--muted); font-family:'Space Mono',monospace; }
+  .cinema-controls{ display:flex; gap:8px; align-items:center; }
+  .icon-btn{ background:var(--panel-light); border:1px solid var(--line); color:var(--text); border-radius:3px; padding:9px 13px; font-size:14px; cursor:pointer; }
+  .icon-btn.active{ border-color: var(--fire); color: var(--ember); }
+  .video-wrap{ background:#000; border-radius:4px; overflow:hidden; border:1px solid var(--line); box-shadow: 0 0 0 1px rgba(217,100,47,0.06); aspect-ratio:16/9; position:relative; margin-bottom:16px; }
+  .video-wrap iframe, .video-wrap video{ width:100%; height:100%; border:0; display:block; }
+  .video-empty{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:20px; text-align:center; }
+  .video-empty p{ color:var(--muted); max-width:340px; font-size:14px; margin:0; line-height:1.6; }
+
+  .chat-drawer-toggle{ display:none; }
+  body.cinema-mode .chat-panel{ max-height: 320px; }
+  .cinema-drawer{ background:linear-gradient(160deg, var(--panel), var(--stone)); border:1px solid var(--line); border-radius:4px; padding:16px; margin-bottom:14px; }
+  .subs-panel{ display:flex; gap:8px; flex-wrap:wrap; background:var(--panel-light); border:1px solid var(--line); border-radius:4px; padding:12px; margin-bottom:14px; }
+  .subs-panel input{ flex:1; min-width:180px; padding:9px 10px; border-radius:3px; border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:13px; }
+
+  .reactions-layer{ position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:12; }
+  .floating-reaction{ position:absolute; bottom:6%; font-size:30px; animation: floatUp 2.2s ease-out forwards; }
+  @keyframes floatUp{ 0%{ transform:translateY(0) scale(0.8); opacity:1; } 20%{ transform:translateY(-20px) scale(1.1); opacity:1; } 100%{ transform:translateY(-220px) scale(1); opacity:0; } }
+
+  @media (prefers-reduced-motion: reduce){ *{ transition:none!important; animation:none!important; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function(){
+  const app = document.getElementById('app');
+  const WORDS = ['CORVO','FOGO','TROVA','NEVE','CINZAS','SELO','TOCHA','VIGIA','ELMO','BRASAO'];
+  const CRESTS = ['🛡️','⚔️','🏰','🔥','❄️','🐺','🦅','🐉'];
+
+  const myId = 'u' + Math.random().toString(36).slice(2, 9);
+  let myName = '';
+  let roomCode = '';
+  let peer = null;
+  let connections = [];
+  let isHost = false;
+  let currentVideo = null;
+  let suppressEvents = false;
+  let ytPlayer = null;
+  let pendingYT = null;
+  let phase = 'landing'; // landing | lobby | cinema
+  let sessionStarted = false;
+  let myReady = false;
+  let localAudioStream = null;
+  let micOn = false;
+  let localVideoStream = null;
+  let camOn = false;
+  let camTileRefs = {};
+  let mediaCalls = [];
+  let participants = {};
+  let toastTimer = null;
+  let reconnectDelay = 1500;
+  let reconnectTimer = null;
+  let queue = [];
+  let seenChatIds = new Set();
+  let connPeerToAppId = {};
+  let subtitleUrl = null;
+  let subtitlesOn = false;
+  let ytCaptionsOn = false;
+
+  function genCode(){
+    const w = WORDS[Math.floor(Math.random()*WORDS.length)];
+    const n = Math.floor(100+Math.random()*899);
+    return w+'-'+n;
+  }
+  function escapeHtml(s){
+    return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function sanitizeRoomId(code){
+    return 'saloreinos-' + code.trim().toUpperCase().replace(/[^A-Z0-9-]/g,'');
+  }
+  function youtubeId(url){
+    const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{6,})/);
+    return m ? m[1] : null;
+  }
+  function normalizeVideoUrl(url){
+    if(/^https?:\/\/(www\.)?dropbox\.com\//i.test(url)){
+      let out = url.replace(/^https?:\/\/(www\.)?dropbox\.com\//i, 'https://dl.dropboxusercontent.com/');
+      if(/[?&]dl=0/.test(out)) out = out.replace(/([?&])dl=0/, '$1dl=1');
+      else if(!/dl=1/.test(out)) out += (out.includes('?') ? '&' : '?') + 'dl=1';
+      return out;
+    }
+    return url;
+  }
+  function crestFor(id){
+    let h = 0; for(let i=0;i<id.length;i++) h = (h*31 + id.charCodeAt(i)) % CRESTS.length;
+    return CRESTS[h];
+  }
+
+  // ---------------- persistence (best-effort; may be unavailable in some preview frames) ----------------
+  function saveSession(){
+    try{ sessionStorage.setItem('saloReinosSession', JSON.stringify({myName, roomCode, wasInRoom: true})); }catch(e){}
+  }
+  function clearSession(){
+    try{ sessionStorage.removeItem('saloReinosSession'); }catch(e){}
+  }
+  function loadSession(){
+    try{ return JSON.parse(sessionStorage.getItem('saloReinosSession')||'null'); }catch(e){ return null; }
+  }
+
+  // ---------------- Landing ----------------
+  function renderLanding(){
+    phase = 'landing';
+    document.body.classList.remove('cinema-mode');
+    const saved = loadSession();
+    app.innerHTML = `
+      <div class="landing">
+        <h1 class="marquee-title display">Salão dos Reinos</h1>
+        <p class="subtitle">Reúna seu séquito diante das chamas. Conversem, marquem-se prontos, e assistam ao filme perfeitamente sincronizados.</p>
+        <div class="ticket">
+          <div class="field">
+            <label for="nameInput">Seu nome de casa</label>
+            <input id="nameInput" type="text" placeholder="Como te chamam nos salões?" maxlength="20" value="${escapeHtml(saved && saved.myName || '')}">
+          </div>
+          <div class="field">
+            <label for="codeInput">Selo da sala</label>
+            <div class="row-inline">
+              <input id="codeInput" type="text" placeholder="ex: CORVO-482" class="mono" maxlength="20" value="${escapeHtml(saved && saved.roomCode || '')}">
+              <button class="btn btn-ghost" id="genBtn" title="Forjar novo selo">🔥</button>
+            </div>
+          </div>
+          <button class="btn btn-amber btn-full" id="enterBtn">Adentrar o salão</button>
+        </div>
+        <p class="hint">Os dois precisam estar diante das telas ao mesmo tempo — a passagem é aberta direto entre os dois castelos. Se o anfitrião cair da sala, ela fica pausada até ele retornar.</p>
+      </div>
+    `;
+    document.getElementById('genBtn').onclick = () => { document.getElementById('codeInput').value = genCode(); };
+    document.getElementById('enterBtn').onclick = () => {
+      myName = document.getElementById('nameInput').value.trim() || 'Andarilho';
+      let code = document.getElementById('codeInput').value.trim().toUpperCase();
+      if(!code) code = genCode();
+      roomCode = code;
+      saveSession();
+      enterLobbyFlow();
+    };
+    // auto-rejoin after a refresh mid-session
+    if(saved && saved.wasInRoom && saved.myName && saved.roomCode){
+      myName = saved.myName; roomCode = saved.roomCode;
+      enterLobbyFlow();
+    }
+  }
+
+  function enterLobbyFlow(){
+    participants[myId] = { name: myName, ready: false, micOn: false, online: true };
+    renderLobby();
+    connectPeer();
+  }
+
+  // ---------------- Lobby (grande salão de espera) ----------------
+  function renderLobby(){
+    phase = 'lobby';
+    document.body.classList.remove('cinema-mode');
+    app.innerHTML = `
+      <div class="room-header">
+        <div>
+          <h2 class="marquee-title display" style="font-size:24px;margin:0 0 8px;">Salão dos Reinos</h2>
+          <span class="room-code-badge">🕯 ${escapeHtml(roomCode)}<span class="leave-link" id="leaveLink">sair</span></span>
+        </div>
+        <div class="conn-status">
+          <div class="bulbs-mini" id="bulbsMini"><div class="bulb-mini"></div><div class="bulb-mini"></div><div class="bulb-mini"></div></div>
+          <span class="conn-label" id="connLabel">acendendo os fogos...</span>
+        </div>
+      </div>
+      <div id="errorSlot"></div>
+
+      <div class="lobby-grid">
+        <div class="hall-panel">
+          <p class="hall-title">🏰 No grande salão</p>
+          <div class="participants-list" id="participantsList"></div>
+          <div class="video-prep-row">
+            <input id="videoInput" type="text" placeholder="Link do YouTube ou de arquivo de vídeo">
+            <button class="btn btn-ghost" id="setVideoBtn">Preparar</button>
+          </div>
+          <p class="video-set-label" id="videoSetLabel">Nenhuma projeção preparada ainda.</p>
+          <div class="lobby-actions">
+            <button class="btn btn-amber" id="readyBtn">✅ Estou pronto</button>
+            <button class="btn btn-ice" id="micBtn">🔇 Ativar microfone</button>
+            <button class="btn btn-ice" id="camBtn">📷 Ativar câmera</button>
+            <button class="btn btn-ghost" id="startBtn" style="display:none;">🎬 Iniciar sessão</button>
+          </div>
+          <p class="hall-title" style="margin:20px 0 10px;">📜 Próximos da sessão</p>
+          <div class="queue-list" id="queueList"></div>
+          <div class="queue-add-row">
+            <input id="queueTitleInput" type="text" placeholder="Nome (opcional)">
+            <input id="queueUrlInput" type="text" placeholder="Link do vídeo">
+            <button class="btn btn-ghost" id="queueAddBtn">+</button>
+          </div>
+        </div>
+
+        <div class="chat-panel">
+          <p class="chat-title">Mensageiros</p>
+          <div class="chat-log" id="chatLog"><p class="chat-empty">Nenhum corvo chegou ainda.</p></div>
+          <div class="chat-input-row">
+            <input id="chatInput" type="text" placeholder="Envie palavra..." maxlength="200">
+            <button class="btn btn-amber" id="sendBtn">Enviar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.getElementById('leaveLink').onclick = leaveRoom;
+    document.getElementById('setVideoBtn').onclick = onSetVideo;
+    document.getElementById('videoInput').addEventListener('keydown', e => { if(e.key==='Enter') onSetVideo(); });
+    document.getElementById('readyBtn').onclick = toggleReady;
+    document.getElementById('micBtn').onclick = toggleMic;
+    document.getElementById('camBtn').onclick = toggleCam;
+    document.getElementById('startBtn').onclick = hostStartSession;
+    document.getElementById('sendBtn').onclick = onSendChat;
+    document.getElementById('chatInput').addEventListener('keydown', e => { if(e.key==='Enter') onSendChat(); });
+    document.getElementById('queueAddBtn').onclick = addQueueItem;
+    document.getElementById('queueUrlInput').addEventListener('keydown', e => { if(e.key==='Enter') addQueueItem(); });
+    document.getElementById('startBtn').style.display = isHost ? 'inline-block' : 'none';
+    renderParticipants();
+    updateVideoSetLabel();
+    updateMicUI();
+    updateCamUI();
+    updateReadyUI();
+    renderQueue();
+  }
+
+  function leaveRoom(){
+    clearSession();
+    if(localAudioStream){ localAudioStream.getTracks().forEach(t => t.stop()); localAudioStream = null; }
+    if(localVideoStream){ localVideoStream.getTracks().forEach(t => t.stop()); localVideoStream = null; }
+    const camC = document.getElementById('camTiles'); if(camC) camC.remove();
+    camTileRefs = {};
+    try{ if(peer) peer.destroy(); }catch(e){}
+    connections = []; participants = {}; currentVideo = null; sessionStarted = false; isHost = false;
+    location.reload();
+  }
+
+  function renderParticipants(){
+    const list = document.getElementById('participantsList');
+    if(!list) return;
+    const entries = Object.entries(participants);
+    list.innerHTML = entries.map(([id, p]) => `
+      <div class="participant-row">
+        <span class="p-name"><span class="p-crest">${crestFor(id)}</span>${escapeHtml(p.name)}${id===myId?' (você)':''}</span>
+        <span class="p-status">
+          <span class="mic-dot">${p.micOn ? '🎙️' : '🔇'}</span>
+          ${p.online === false
+            ? '<span class="status-waiting">🔴 desconectado</span>'
+            : (phase === 'cinema'
+                ? '<span class="status-ready">🟢 na sala</span>'
+                : `<span class="${p.ready ? 'status-ready':'status-waiting'}">${p.ready ? '✅ Pronto' : '⏳ Não está pronto'}</span>`)
+          }
+        </span>
+      </div>
+    `).join('');
+  }
+
+  function renderQueue(){
+    const el = document.getElementById('queueList');
+    if(!el) return;
+    if(!queue.length){ el.innerHTML = '<p class="chat-empty">Nenhum título na fila ainda.</p>'; return; }
+    el.innerHTML = queue.map(q => `
+      <div class="queue-item">
+        <span>${escapeHtml(q.title || (q.kind === 'youtube' ? 'Vídeo do YouTube' : 'Arquivo de vídeo'))}</span>
+        <span class="queue-item-actions">
+          <button data-use="${q.id}">▶ usar</button>
+          <button data-del="${q.id}">✕</button>
+        </span>
+      </div>
+    `).join('');
+    el.querySelectorAll('[data-use]').forEach(b => { b.onclick = () => useQueueItem(b.dataset.use); });
+    el.querySelectorAll('[data-del]').forEach(b => { b.onclick = () => removeQueueItem(b.dataset.del); });
+  }
+  function addQueueItem(){
+    const titleEl = document.getElementById('queueTitleInput');
+    const urlEl = document.getElementById('queueUrlInput');
+    let url = urlEl.value.trim();
+    if(!url) return;
+    const ytId = youtubeId(url);
+    const kind = ytId ? 'youtube' : 'file';
+    if(kind === 'file') url = normalizeVideoUrl(url);
+    queue.push({ id: 'q'+Date.now()+Math.random().toString(36).slice(2,6), title: titleEl.value.trim(), url, kind });
+    titleEl.value = ''; urlEl.value = '';
+    renderQueue();
+    broadcast({type:'queue', items: queue});
+  }
+  function useQueueItem(id){
+    const item = queue.find(q => q.id === id);
+    if(!item) return;
+    currentVideo = { url: item.url, kind: item.kind };
+    updateVideoSetLabel();
+    if(phase === 'cinema') applyVideo(item.url, item.kind);
+    broadcast({type:'setVideo', url: item.url, kind: item.kind});
+  }
+  function removeQueueItem(id){
+    queue = queue.filter(q => q.id !== id);
+    renderQueue();
+    broadcast({type:'queue', items: queue});
+  }
+
+  function updateVideoSetLabel(){
+    const el = document.getElementById('videoSetLabel');
+    if(!el) return;
+    el.textContent = currentVideo ? ('Projeção preparada: ' + (currentVideo.kind === 'youtube' ? 'vídeo do YouTube' : 'arquivo de vídeo')) : 'Nenhuma projeção preparada ainda.';
+  }
+
+  function updateReadyUI(){
+    const btn = document.getElementById('readyBtn');
+    if(!btn) return;
+    btn.textContent = myReady ? '↩️ Cancelar prontidão' : '✅ Estou pronto';
+  }
+
+  function updateMicUI(){
+    const btn = document.getElementById('micBtn');
+    if(btn){ btn.textContent = micOn ? '🎙️ Microfone ligado' : '🔇 Ativar microfone'; btn.classList.toggle('active', micOn); }
+    const cbtn = document.getElementById('cinemaMicBtn');
+    if(cbtn){ cbtn.textContent = micOn ? '🎙️' : '🔇'; cbtn.classList.toggle('active', micOn); }
+  }
+
+  function updateCamUI(){
+    const btn = document.getElementById('camBtn');
+    if(btn){ btn.textContent = camOn ? '🎥 Câmera ligada' : '📷 Ativar câmera'; btn.classList.toggle('active', camOn); }
+    const cbtn = document.getElementById('cinemaCamBtn');
+    if(cbtn){ cbtn.textContent = camOn ? '🎥' : '📷'; cbtn.classList.toggle('active', camOn); }
+  }
+
+  function toggleReady(){
+    myReady = !myReady;
+    participants[myId] = { name: myName, ready: myReady, micOn: micOn, online: true };
+    broadcastPresence();
+    renderParticipants();
+    updateReadyUI();
+  }
+
+  function hostStartSession(){
+    if(!isHost) return;
+    sessionStarted = true;
+    broadcast({type:'startSession'});
+    enterCinemaMode();
+  }
+
+  function handleStartSession(){
+    sessionStarted = true;
+    enterCinemaMode();
+  }
+
+  // ---------------- Cinema mode ----------------
+  function enterCinemaMode(){
+    phase = 'cinema';
+    document.body.classList.add('cinema-mode');
+    app.innerHTML = `
+      <div class="cinema-topbar">
+        <span class="cinema-badge">🕯 ${escapeHtml(roomCode)} <span class="leave-link" id="leaveLink">sair</span></span>
+        <div class="cinema-controls">
+          <button class="icon-btn" id="reactFire" title="Reagir">🔥</button>
+          <button class="icon-btn" id="reactGasp" title="Reagir">😱</button>
+          <button class="icon-btn" id="reactLaugh" title="Reagir">😂</button>
+          <button class="icon-btn" id="reactHeart" title="Reagir">❤️</button>
+          <button class="icon-btn" id="cinemaMicBtn" title="Microfone">${micOn ? '🎙️' : '🔇'}</button>
+          <button class="icon-btn" id="cinemaCamBtn" title="Câmera">${camOn ? '🎥' : '📷'}</button>
+          <button class="icon-btn" id="subsBtn" title="Legendas">CC</button>
+          <button class="icon-btn" id="cinemaQueueBtn" title="Próximos vídeos">📜</button>
+          <button class="icon-btn" id="cinemaPeopleBtn" title="Quem está na sala">👥</button>
+          <button class="icon-btn" id="cinemaChatBtn" title="Mensageiros">💬</button>
+          <button class="icon-btn" id="cinemaPauseBtn" title="Pausar">⏸️</button>
+        </div>
+      </div>
+      <div class="subs-panel" id="subsPanel" style="display:none;">
+        <input id="subsUrlInput" type="text" placeholder="Link do arquivo .vtt de legenda (opcional p/ YouTube)">
+        <button class="btn btn-ghost" id="subsApplyBtn">Aplicar</button>
+        <button class="btn btn-ghost" id="subsToggleBtn">Legendas: Desligadas</button>
+      </div>
+      <div class="cinema-drawer" id="cinemaQueuePanel" style="display:none;">
+        <p class="hall-title" style="margin:0 0 10px;">📜 Próximos da sessão</p>
+        <div class="queue-list" id="queueList"></div>
+        <div class="queue-add-row">
+          <input id="queueTitleInput" type="text" placeholder="Nome (opcional)">
+          <input id="queueUrlInput" type="text" placeholder="Link do vídeo">
+          <button class="btn btn-ghost" id="queueAddBtn">+</button>
+        </div>
+      </div>
+      <div class="cinema-drawer" id="cinemaPeoplePanel" style="display:none;">
+        <p class="hall-title" style="margin:0 0 10px;">👥 Quem está na sala</p>
+        <div class="participants-list" id="participantsList"></div>
+      </div>
+      <div class="video-wrap" id="videoWrap">
+        <div class="video-empty" id="videoEmpty">
+          <p>Nenhuma projeção preparada. Abra "📜 Próximos vídeos" para colar um link.</p>
+        </div>
+        <div id="ytFrame" style="display:none;width:100%;height:100%;"></div>
+        <video id="fileVideo" controls playsinline webkit-playsinline="true" style="display:none;"></video>
+        <div class="reactions-layer" id="reactionsLayer"></div>
+        <div class="toast" id="toast"></div>
+      </div>
+      <div class="chat-panel" id="cinemaChatPanel">
+        <p class="chat-title">Mensageiros</p>
+        <div class="chat-log" id="chatLog"><p class="chat-empty">Nenhum corvo chegou ainda.</p></div>
+        <div class="chat-input-row">
+          <input id="chatInput" type="text" placeholder="Envie palavra..." maxlength="200">
+          <button class="btn btn-amber" id="sendBtn">Enviar</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('leaveLink').onclick = leaveRoom;
+    document.getElementById('cinemaMicBtn').onclick = toggleMic;
+    document.getElementById('cinemaCamBtn').onclick = toggleCam;
+    document.getElementById('subsBtn').onclick = () => {
+      const p = document.getElementById('subsPanel');
+      p.style.display = (p.style.display === 'none') ? 'flex' : 'none';
+    };
+    document.getElementById('subsApplyBtn').onclick = applySubtitle;
+    document.getElementById('subsToggleBtn').onclick = toggleSubtitles;
+    document.getElementById('cinemaQueueBtn').onclick = () => {
+      const p = document.getElementById('cinemaQueuePanel');
+      p.style.display = (p.style.display === 'none') ? 'block' : 'none';
+      renderQueue();
+    };
+    document.getElementById('cinemaPeopleBtn').onclick = () => {
+      const p = document.getElementById('cinemaPeoplePanel');
+      p.style.display = (p.style.display === 'none') ? 'block' : 'none';
+      renderParticipants();
+    };
+    document.getElementById('queueAddBtn').onclick = addQueueItem;
+    document.getElementById('queueUrlInput').addEventListener('keydown', e => { if(e.key==='Enter') addQueueItem(); });
+    document.getElementById('cinemaChatBtn').onclick = () => {
+      const panel = document.getElementById('cinemaChatPanel');
+      panel.style.display = (panel.style.display === 'none') ? 'block' : 'none';
+    };
+    document.getElementById('cinemaPauseBtn').onclick = () => pauseCurrent();
+    document.getElementById('sendBtn').onclick = onSendChat;
+    document.getElementById('chatInput').addEventListener('keydown', e => { if(e.key==='Enter') onSendChat(); });
+    document.getElementById('reactFire').onclick = () => sendReaction('🔥');
+    document.getElementById('reactGasp').onclick = () => sendReaction('😱');
+    document.getElementById('reactLaugh').onclick = () => sendReaction('😂');
+    document.getElementById('reactHeart').onclick = () => sendReaction('❤️');
+    updateCamUI();
+    renderQueue();
+    renderParticipants();
+
+    if(currentVideo){
+      applyVideo(currentVideo.url, currentVideo.kind);
+      if(isHost){ setTimeout(() => { suppressEvents=false; playCurrent(); }, 300); }
+    }
+  }
+
+  function sendReaction(emoji){
+    spawnReaction(emoji);
+    broadcast({type:'reaction', emoji});
+  }
+  function spawnReaction(emoji){
+    const layer = document.getElementById('reactionsLayer');
+    if(!layer) return;
+    const el = document.createElement('span');
+    el.className = 'floating-reaction';
+    el.textContent = emoji;
+    el.style.left = (8 + Math.random()*78) + '%';
+    layer.appendChild(el);
+    setTimeout(() => el.remove(), 2300);
+  }
+
+  // ---------------- Chat & toast shared render (works for both lobby/cinema) ----------------
+  function showToast(text){
+    const t = document.getElementById('toast');
+    if(!t) return;
+    t.textContent = text;
+    t.classList.add('show');
+    if(toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 4200);
+  }
+
+  function showError(msg){
+    const slot = document.getElementById('errorSlot');
+    if(slot) slot.innerHTML = `<div class="error-box">${escapeHtml(msg)}</div>`;
+  }
+  function setConnLabel(text, litCount, warn){
+    const label = document.getElementById('connLabel');
+    if(label) label.textContent = text;
+    const bulbs = document.querySelectorAll('#bulbsMini .bulb-mini');
+    bulbs.forEach((b,i) => { b.classList.toggle('lit', i < litCount && !warn); b.classList.toggle('warn', i < litCount && !!warn); });
+  }
+
+  // ---------------- P2P connection ----------------
+  function connectPeer(){
+    const id = sanitizeRoomId(roomCode);
+    setConnLabel('acendendo os fogos...', 1);
+    peer = new Peer(id);
+    bindPeerEvents(peer);
+    peer.on('open', () => {
+      isHost = true;
+      setConnLabel('aguardando o outro viajante...', 2);
+      peer.on('connection', conn => setupConnection(conn));
+    });
+    peer.on('error', (err) => {
+      if(err.type === 'unavailable-id'){
+        isHost = false;
+        const guest = new Peer();
+        bindPeerEvents(guest);
+        guest.on('open', () => {
+          peer = guest;
+          const conn = peer.connect(id, { reliable: true });
+          setupConnection(conn);
+        });
+        guest.on('error', () => showError('Não foi possível abrir a passagem. Confira o selo e tente de novo.'));
+      } else if (err.type === 'peer-unavailable') {
+        showError('Salão não encontrado, ou o anfitrião ainda não chegou. Tentando novamente...');
+        scheduleReconnect(() => connectPeer());
+      } else {
+        setConnLabel('os fogos tremeluziram...', 1, true);
+        showError('Conexão instável (' + err.type + '). Tentando reconectar...');
+        scheduleReconnect(() => connectPeer());
+      }
+    });
+  }
+
+  function bindPeerEvents(p){
+    p.on('disconnected', () => {
+      setConnLabel('reconectando...', 1, true);
+      try{ p.reconnect(); }catch(e){}
+    });
+    p.on('call', incoming => {
+      incoming.answer(); // receive-only unless we've turned our own mic on (we call them separately in that case)
+      setupMediaCall(incoming);
+    });
+  }
+
+  function scheduleReconnect(fn){
+    if(reconnectTimer) clearTimeout(reconnectTimer);
+    reconnectTimer = setTimeout(() => { reconnectDelay = Math.min(reconnectDelay*1.5, 10000); fn(); }, reconnectDelay);
+  }
+
+  function setupConnection(conn){
+    // evita conexões duplicadas com o mesmo peer (causa de mensagens repetidas)
+    connections = connections.filter(c => {
+      if(c.peer === conn.peer && c !== conn){ try{ c.close(); }catch(e){} return false; }
+      return true;
+    });
+    connections.push(conn);
+    conn.on('open', () => {
+      reconnectDelay = 1500;
+      setConnLabel('passagem aberta 🔥', 3);
+      conn.send({type:'presence', id: myId, name: myName, ready: myReady, micOn: micOn});
+      if(currentVideo) conn.send({type:'setVideo', url: currentVideo.url, kind: currentVideo.kind});
+      if(queue.length) conn.send({type:'queue', items: queue});
+      if(sessionStarted) conn.send({type:'sync', video: currentVideo, playing: isPlayingNow(), time: currentPlaybackTime(), sessionStarted: true});
+      if(localAudioStream){ const call = peer.call(conn.peer, localAudioStream); setupMediaCall(call); }
+      if(localVideoStream){ const vcall = peer.call(conn.peer, localVideoStream); setupMediaCall(vcall); }
+    });
+    conn.on('data', data => handleData(data, conn));
+    conn.on('close', () => {
+      connections = connections.filter(c => c !== conn);
+      setConnLabel('o outro viajante partiu — aguardando retorno', 1, true);
+      const remoteTile = camTileRefs['remote-'+conn.peer];
+      if(remoteTile) remoteTile.wrap.style.display = 'none';
+      const appId = connPeerToAppId[conn.peer];
+      const person = appId && participants[appId] ? participants[appId] : null;
+      Object.keys(participants).forEach(id => { if(id !== myId && (!appId || id === appId)) participants[id].online = false; });
+      renderParticipants();
+      const who = person ? person.name : 'A outra pessoa';
+      showToast('⚠️ ' + who + ' saiu da sessão — considere pausar.');
+      appendChatSystem(who + ' saiu da sessão.');
+      scheduleReconnect(() => {
+        if(isHost) return; // host just waits for peer.on('connection') again
+        const newConn = peer.connect(conn.peer, { reliable: true });
+        setupConnection(newConn);
+      });
+    });
+    conn.on('error', () => setConnLabel('a passagem tremeluziu', 1, true));
+  }
+
+  function broadcast(data){
+    connections.forEach(c => { if(c.open) c.send(data); });
+  }
+  function broadcastPresence(){
+    broadcast({type:'presence', id: myId, name: myName, ready: myReady, micOn: micOn});
+  }
+
+  function handleData(data, conn){
+    if(data.type === 'presence'){
+      if(conn) connPeerToAppId[conn.peer] = data.id;
+      const isNew = !participants[data.id];
+      participants[data.id] = { name: data.name, ready: !!data.ready, micOn: !!data.micOn, online: true };
+      if(isNew) appendChatSystem(data.name + ' adentrou o salão');
+      renderParticipants();
+      if(document.getElementById('startBtn')) document.getElementById('startBtn').style.display = isHost ? 'inline-block' : 'none';
+    } else if(data.type === 'chat'){
+      if(data.id){ if(seenChatIds.has(data.id)) { /* já processada, ignora */ } else { seenChatIds.add(data.id); appendChatMessage(data.name, data.text); showToast('💬 ' + data.name + ': ' + (data.text.length > 42 ? data.text.slice(0,42)+'…' : data.text)); } }
+      else { appendChatMessage(data.name, data.text); }
+    } else if(data.type === 'setVideo'){
+      currentVideo = { url: data.url, kind: data.kind };
+      updateVideoSetLabel();
+      if(phase === 'cinema') applyVideo(data.url, data.kind);
+    } else if(data.type === 'queue'){
+      queue = data.items || [];
+      renderQueue();
+    } else if(data.type === 'reaction'){
+      spawnReaction(data.emoji);
+    } else if(data.type === 'startSession'){
+      handleStartSession();
+    } else if(data.type === 'play'){
+      remoteApply(() => { seekIfNeeded(data.time); playCurrent(); });
+    } else if(data.type === 'pause'){
+      remoteApply(() => { seekIfNeeded(data.time); pauseCurrent(); });
+    } else if(data.type === 'seek'){
+      remoteApply(() => { seekIfNeeded(data.time); });
+    } else if(data.type === 'sync'){
+      if(data.video && (!currentVideo || currentVideo.url !== data.video.url)){
+        currentVideo = data.video;
+        if(phase === 'cinema') applyVideo(data.video.url, data.video.kind);
+      }
+      if(data.sessionStarted && phase !== 'cinema'){
+        sessionStarted = true;
+        enterCinemaMode();
+      }
+      if(typeof data.time === 'number'){
+        remoteApply(() => { seekIfNeeded(data.time); if(data.playing) playCurrent(); else pauseCurrent(); });
+      }
+    }
+  }
+
+  function remoteApply(fn){
+    suppressEvents = true;
+    fn();
+    setTimeout(() => { suppressEvents = false; }, 500);
+  }
+
+  // ---------------- Video control ----------------
+  function onSetVideo(){
+    let raw = document.getElementById('videoInput').value.trim();
+    if(!raw) return;
+    const ytId = youtubeId(raw);
+    const kind = ytId ? 'youtube' : 'file';
+    if(kind === 'file') raw = normalizeVideoUrl(raw);
+    currentVideo = { url: raw, kind };
+    updateVideoSetLabel();
+    if(phase === 'cinema') applyVideo(raw, kind);
+    broadcast({type:'setVideo', url: raw, kind});
+  }
+
+  function applyVideo(url, kind){
+    const empty = document.getElementById('videoEmpty');
+    const ytEl = document.getElementById('ytFrame');
+    const fileEl = document.getElementById('fileVideo');
+    if(!empty || !ytEl || !fileEl) return;
+    empty.style.display = 'none';
+    if(kind === 'youtube'){
+      fileEl.style.display = 'none';
+      ytEl.style.display = 'block';
+      loadYouTube(youtubeId(url));
+    } else {
+      stopYouTube();
+      ytEl.style.display = 'none';
+      fileEl.style.display = 'block';
+      fileEl.src = url;
+      attachFileVideoEvents(fileEl);
+      if(subtitleUrl) attachSubtitleTrack();
+    }
+  }
+
+  let fileEventsAttached = false;
+  let lastAutoPauseTime = 0;
+  function attachFileVideoEvents(v){
+    if(fileEventsAttached) return;
+    fileEventsAttached = true;
+    v.addEventListener('play', () => { if(!suppressEvents) broadcast({type:'play', time: v.currentTime}); });
+    v.addEventListener('pause', () => {
+      lastAutoPauseTime = Date.now();
+      if(!suppressEvents) broadcast({type:'pause', time: v.currentTime});
+    });
+    v.addEventListener('seeked', () => { if(!suppressEvents) broadcast({type:'seek', time: v.currentTime}); });
+    // corrige o comportamento do iOS de pausar automaticamente ao sair da tela cheia
+    const resumeIfAutoPaused = () => {
+      if(Date.now() - lastAutoPauseTime < 900){
+        setTimeout(() => { v.play().catch(()=>{}); }, 150);
+      }
+    };
+    v.addEventListener('webkitendfullscreen', resumeIfAutoPaused);
+    document.addEventListener('fullscreenchange', () => { if(!document.fullscreenElement) resumeIfAutoPaused(); });
+  }
+
+  function loadYouTube(videoId){
+    pendingYT = videoId;
+    if(window.YT && window.YT.Player){ createOrLoadYT(); }
+    else if(!document.getElementById('yt-api-script')){
+      const tag = document.createElement('script');
+      tag.id = 'yt-api-script';
+      tag.src = 'https://www.youtube.com/iframe_api';
+      document.body.appendChild(tag);
+      window.onYouTubeIframeAPIReady = () => { createOrLoadYT(); };
+    }
+  }
+  function createOrLoadYT(){
+    if(!pendingYT) return;
+    if(ytPlayer){ ytPlayer.loadVideoById(pendingYT); return; }
+    ytPlayer = new YT.Player('ytFrame', {
+      videoId: pendingYT,
+      playerVars: { rel: 0, playsinline: 1 },
+      events: { onStateChange: onYTStateChange }
+    });
+  }
+  function stopYouTube(){ if(ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo(); }
+
+  // ---------------- Legendas ----------------
+  function applySubtitle(){
+    const input = document.getElementById('subsUrlInput');
+    const url = input ? input.value.trim() : '';
+    if(!url) return;
+    subtitleUrl = url;
+    subtitlesOn = true;
+    attachSubtitleTrack();
+    updateSubsToggleLabel();
+  }
+  function attachSubtitleTrack(){
+    const v = document.getElementById('fileVideo');
+    if(!v || !subtitleUrl) return;
+    Array.from(v.querySelectorAll('track')).forEach(t => t.remove());
+    const track = document.createElement('track');
+    track.kind = 'subtitles';
+    track.label = 'Legenda';
+    track.srclang = 'pt';
+    track.src = subtitleUrl;
+    track.default = true;
+    v.appendChild(track);
+    setTimeout(() => { if(v.textTracks[0]) v.textTracks[0].mode = subtitlesOn ? 'showing' : 'hidden'; }, 200);
+  }
+  function toggleSubtitles(){
+    if(currentVideo && currentVideo.kind === 'youtube'){ toggleYouTubeCaptions(); return; }
+    if(!subtitleUrl){ showError('Cole o link de um arquivo .vtt de legenda e toque em "Aplicar" primeiro.'); return; }
+    subtitlesOn = !subtitlesOn;
+    const v = document.getElementById('fileVideo');
+    if(v && v.textTracks[0]) v.textTracks[0].mode = subtitlesOn ? 'showing' : 'hidden';
+    updateSubsToggleLabel();
+  }
+  function updateSubsToggleLabel(){
+    const b = document.getElementById('subsToggleBtn');
+    if(!b) return;
+    const on = (currentVideo && currentVideo.kind === 'youtube') ? ytCaptionsOn : subtitlesOn;
+    b.textContent = on ? 'Legendas: Ligadas' : 'Legendas: Desligadas';
+  }
+  function toggleYouTubeCaptions(){
+    if(!ytPlayer) return;
+    try{
+      if(!ytCaptionsOn){
+        if(ytPlayer.loadModule) ytPlayer.loadModule('captions');
+        ytPlayer.setOption('captions', 'track', {});
+        ytCaptionsOn = true;
+      } else {
+        if(ytPlayer.unloadModule) ytPlayer.unloadModule('captions');
+        ytCaptionsOn = false;
+      }
+      updateSubsToggleLabel();
+    }catch(e){}
+  }
+  function onYTStateChange(e){
+    if(suppressEvents || !ytPlayer) return;
+    if(e.data === YT.PlayerState.PLAYING){ broadcast({type:'play', time: ytPlayer.getCurrentTime()}); }
+    else if(e.data === YT.PlayerState.PAUSED){ broadcast({type:'pause', time: ytPlayer.getCurrentTime()}); }
+  }
+
+  function playCurrent(){
+    if(!currentVideo) return;
+    if(currentVideo.kind === 'youtube' && ytPlayer) ytPlayer.playVideo();
+    else { const v = document.getElementById('fileVideo'); if(v) v.play().catch(()=>{}); }
+  }
+  function pauseCurrent(){
+    if(!currentVideo) return;
+    if(currentVideo.kind === 'youtube' && ytPlayer) ytPlayer.pauseVideo();
+    else { const v = document.getElementById('fileVideo'); if(v) v.pause(); }
+  }
+  function seekIfNeeded(time){
+    if(!currentVideo || typeof time !== 'number') return;
+    if(currentVideo.kind === 'youtube' && ytPlayer && ytPlayer.getCurrentTime){
+      if(Math.abs(ytPlayer.getCurrentTime() - time) > 1) ytPlayer.seekTo(time, true);
+    } else {
+      const v = document.getElementById('fileVideo');
+      if(v && Math.abs(v.currentTime - time) > 1) v.currentTime = time;
+    }
+  }
+  function currentPlaybackTime(){
+    if(!currentVideo) return 0;
+    if(currentVideo.kind === 'youtube' && ytPlayer && ytPlayer.getCurrentTime) return ytPlayer.getCurrentTime();
+    const v = document.getElementById('fileVideo');
+    return v ? v.currentTime : 0;
+  }
+  function isPlayingNow(){
+    if(!currentVideo) return false;
+    if(currentVideo.kind === 'youtube' && ytPlayer && ytPlayer.getPlayerState) return ytPlayer.getPlayerState() === 1;
+    const v = document.getElementById('fileVideo');
+    return v ? !v.paused : false;
+  }
+
+  // ---------------- Voice & camera chat ----------------
+  function toggleMic(){
+    if(!localAudioStream){
+      navigator.mediaDevices.getUserMedia({audio:true}).then(stream => {
+        localAudioStream = stream;
+        micOn = true;
+        connections.forEach(c => { if(c.open){ const call = peer.call(c.peer, localAudioStream); setupMediaCall(call); } });
+        participants[myId] = { name: myName, ready: myReady, micOn: true, online: true };
+        broadcastPresence();
+        renderParticipants();
+        updateMicUI();
+      }).catch(() => showError('Não consegui acessar o microfone. Verifique se o navegador tem permissão de microfone para este site (em iPhone: Ajustes > Safari > Microfone, ou o ícone "aA"/cadeado na barra de endereço).'));
+    } else {
+      micOn = !micOn;
+      localAudioStream.getAudioTracks().forEach(t => t.enabled = micOn);
+      participants[myId] = { name: myName, ready: myReady, micOn: micOn, online: true };
+      broadcastPresence();
+      renderParticipants();
+      updateMicUI();
+    }
+  }
+
+  function tryPlayMedia(el){
+    const p = el.play();
+    if(p && p.catch){ p.catch(() => showAudioUnlockPrompt()); }
+  }
+  function showAudioUnlockPrompt(){
+    if(document.getElementById('audioUnlockBtn')) return;
+    const btn = document.createElement('button');
+    btn.id = 'audioUnlockBtn';
+    btn.textContent = '🔊 Toque para ativar o áudio da chamada';
+    btn.style.cssText = 'position:fixed;bottom:104px;right:16px;left:16px;max-width:340px;margin-left:auto;z-index:9999;background:var(--fire);color:#1a0d04;border:none;border-radius:4px;padding:12px 16px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,0.5);';
+    btn.onclick = () => {
+      document.querySelectorAll('audio[id^="remoteAudio-"]').forEach(a => a.play().catch(()=>{}));
+      Object.values(camTileRefs).forEach(t => t.vid.play().catch(()=>{}));
+      btn.remove();
+    };
+    document.body.appendChild(btn);
+  }
+
+  function ensureCamTilesContainer(){
+    let c = document.getElementById('camTiles');
+    if(!c){
+      c = document.createElement('div');
+      c.id = 'camTiles';
+      c.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:9999;display:flex;gap:8px;';
+      document.body.appendChild(c);
+    }
+    return c;
+  }
+  function getOrCreateCamTile(id, label){
+    if(camTileRefs[id]) return camTileRefs[id];
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'width:108px;height:80px;border-radius:4px;overflow:hidden;border:1px solid #3a322c;background:#000;position:relative;box-shadow:0 6px 16px rgba(0,0,0,0.5);display:none;';
+    const vid = document.createElement('video');
+    vid.autoplay = true; vid.playsInline = true; vid.muted = true;
+    vid.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+    const tag = document.createElement('span');
+    tag.textContent = label;
+    tag.style.cssText = "position:absolute;bottom:2px;left:4px;font-size:10px;color:#e9e0cd;background:rgba(0,0,0,0.55);padding:1px 5px;border-radius:2px;font-family:'EB Garamond',serif;";
+    wrap.appendChild(vid); wrap.appendChild(tag);
+    ensureCamTilesContainer().appendChild(wrap);
+    const ref = { wrap, vid };
+    camTileRefs[id] = ref;
+    return ref;
+  }
+
+  function toggleCam(){
+    if(!localVideoStream){
+      navigator.mediaDevices.getUserMedia({video:true}).then(stream => {
+        localVideoStream = stream;
+        camOn = true;
+        const tile = getOrCreateCamTile('local', 'Você');
+        tile.vid.srcObject = stream;
+        tile.wrap.style.display = 'block';
+        tryPlayMedia(tile.vid);
+        connections.forEach(c => { if(c.open){ const call = peer.call(c.peer, localVideoStream); setupMediaCall(call); } });
+        updateCamUI();
+      }).catch(() => showError('Não consegui acessar a câmera. Verifique as permissões do navegador para este site.'));
+    } else {
+      camOn = !camOn;
+      localVideoStream.getVideoTracks().forEach(t => t.enabled = camOn);
+      const tile = camTileRefs['local'];
+      if(tile) tile.wrap.style.display = camOn ? 'block' : 'none';
+      updateCamUI();
+    }
+  }
+
+  function setupMediaCall(call){
+    mediaCalls.push(call);
+    call.on('stream', remoteStream => {
+      const videoTracks = remoteStream.getVideoTracks();
+      if(videoTracks.length > 0){
+        const tile = getOrCreateCamTile('remote-' + call.peer, 'Convidado');
+        tile.vid.srcObject = remoteStream;
+        tryPlayMedia(tile.vid);
+        const track = videoTracks[0];
+        const updateVisibility = () => { tile.wrap.style.display = track.muted ? 'none' : 'block'; };
+        updateVisibility();
+        track.onmute = updateVisibility;
+        track.onunmute = updateVisibility;
+      } else {
+        let el = document.getElementById('remoteAudio-' + call.peer);
+        if(!el){ el = document.createElement('audio'); el.id = 'remoteAudio-' + call.peer; el.playsInline = true; el.style.display='none'; document.body.appendChild(el); }
+        el.srcObject = remoteStream;
+        tryPlayMedia(el);
+      }
+    });
+    call.on('close', () => { mediaCalls = mediaCalls.filter(c => c !== call); });
+  }
+
+  // ---------------- Chat ----------------
+  function appendChatMessage(name, text){
+    const log = document.getElementById('chatLog');
+    if(!log) return;
+    const empty = log.querySelector('.chat-empty');
+    if(empty) log.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'chat-msg';
+    div.innerHTML = `<span class="who">${escapeHtml(name)}</span>${escapeHtml(text)}`;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  }
+  function appendChatSystem(text){
+    const log = document.getElementById('chatLog');
+    if(!log) return;
+    const empty = log.querySelector('.chat-empty');
+    if(empty) log.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'chat-msg';
+    div.style.color = 'var(--muted)';
+    div.style.fontStyle = 'italic';
+    div.textContent = text;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  }
+  function sendChat(text){
+    text = (text||'').trim();
+    if(!text) return;
+    const msgId = myId + '-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
+    appendChatMessage(myName, text);
+    broadcast({type:'chat', id: msgId, name: myName, text});
+  }
+  function onSendChat(){
+    const input = document.getElementById('chatInput');
+    const text = input.value;
+    input.value = '';
+    sendChat(text);
+  }
+
+  renderLanding();
+})();
+</script>
+</body>
+</html>
